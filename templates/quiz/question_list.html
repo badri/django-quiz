@@ -1,0 +1,15 @@
+{% extends "quiz/base_quiz.html" %}
+
+{% block title %}Questions{% endblock %}
+
+{% block content_title %}
+	<h2>Questions</h2>
+{% endblock %}
+
+{% block content %}
+	<ul class="link_list">
+		{% for q in questions %}
+			<li><a href="{{ q.get_absolute_url }}">{{ q.question }}</a></li>
+		{% endfor %}
+	</ul>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "quiz/base_quiz.html" %}
+
+{% block title %}{{ question.question }}{% endblock %}
+
+{% block content_title %}
+	<h2>{{ question.question }}</h2>
+{% endblock %}
+
+{% block content %}
+	<ul class="link_list">
+		{% for choice in question.choices.all %}
+		    {% if choice in question.correct_answer.all %} 
+			<li><b>{{ choice }}</b></li>
+		    {% else %}
+			<li>{{ choice }}</li>
+		    {% endif %}
+		{% endfor %}
+	</ul>
+{% endblock %}
