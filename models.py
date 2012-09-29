@@ -64,7 +64,7 @@ class Quiz(models.Model):
 		(2, _('After each question')),
 		(3, _('Don\'t disclose')),
 	)
-
+	setter = models.ForeignKey(User, related_name='setter')
 	title = models.CharField(_('title'), max_length=100)
 	slug = models.SlugField(_('slug'))
 	description = models.TextField(_('description'), blank=True, null=True)	
@@ -93,20 +93,34 @@ class Quiz(models.Model):
 		return u"%s" % self.title
 	
 	@property
-	def count_questions(self):
-		pass
+	def question_count(self):
+		return len(self.questions.all())
 
-class UserResponse(models.Model):
-	question = models.ForeignKey(MultipleChoice)
-	quiz = models.ForeignKey(Quiz)
-	taker = models.ForeignKey(User)
-	response = models.ForeignKey(MultipleChoiceAnswer, related_name="response")
-	time_taken = models.DateTimeField(_('When was the question posed'))
-	time_taken_delta = models.DateTimeField(_('When was the question answered'))
+	def get_question(self, id):
+		return self.questions.all()[id]
 
 class QuizInstance(models.Model):
 	taker = models.ForeignKey(User)
 	quiz = models.ForeignKey(Quiz)
-	setter = models.ForeignKey(User, related_name='setter')
 	quiz_taken = models.DateTimeField(_('quiz taken'), auto_now_add=True)
+	score = models.IntegerField(default=0)
 	
+	# prevent from setting score in the frontend to avoid tampering
+	def __setattr__(self, name, value):
+		if name == 'score':
+			if getattr(self, 'score', None):
+				if getattr(self, 'score') != 0:
+					return
+		super(QuizInstance, self).__setattr__(name, value)
+
+	
+class UserResponse(models.Model):
+	quiz_instance = models.OneToOneField(QuizInstance)
+	question = models.ForeignKey(MultipleChoice)
+	response = models.ManyToManyField(MultipleChoiceAnswer, related_name="response")
+	time_taken = models.DateTimeField(_('When was the question posed'))
+	time_taken_delta = models.DateTimeField(_('When was the question answered'))
+
+	def is_correct(self):
+		return self.question.correct_answer.all()==self.response.all()
+

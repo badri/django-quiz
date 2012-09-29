@@ -1,0 +1,15 @@
+{% extends "quiz/base_quiz.html" %}
+
+{% block title %}{{ q.question }}{% endblock %}
+
+{% block content_title %}
+	<h2>{{ q.question }}</h2>
+{% endblock %}
+
+{% block content %}
+	<form action="" method="post">	{% csrf_token %}
+	  {{ question_form }}
+	  <input type="hidden" name="question_number" value="{{ question_number }}">
+	  <input type="submit" value="Next >>">
+	</form>
+{% endblock %}

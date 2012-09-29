@@ -1,7 +1,7 @@
 from django import forms
 
 from quiz.models import *
-
+'''
 class QuestionForm(forms.Form):
 	answers = forms.ChoiceField(widget=forms.RadioSelect(), label=u"Please select a answer:")
 	
@@ -28,4 +28,13 @@ def quiz_forms(quiz, data=None):
 	for pos, question in enumerate(questions):
 		form_list.append(QuestionForm(question, data, prefix=pos))
 	return form_list
+'''
 
+class QuizForm(forms.Form):
+	choices = forms.ModelChoiceField(queryset=MultipleChoiceAnswer.objects.none(),
+					 widget=forms.CheckboxSelectMultiple, required=True, show_hidden_initial=True)
+
+	def __init__(self, question):
+		super(QuizForm, self).__init__()
+		self.fields['choices'].queryset = question.choices.all()
+		self.fields['choices'].empty_label = None
