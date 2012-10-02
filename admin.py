@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from quiz.models import  Quiz, MultipleChoiceAnswer, MultipleChoice, Category
-
+from quiz.models import  Quiz, MultipleChoiceAnswer, MultipleChoice, Category, QuizInstance, UserResponse
 
 class QuizAdmin(admin.ModelAdmin):
 	prepopulated_fields = {'slug': ('title',)}
@@ -24,3 +23,5 @@ admin.site.register(Quiz, QuizAdmin)
 admin.site.register(MultipleChoiceAnswer)
 admin.site.register(MultipleChoice, MultipleChoiceAdmin)
 admin.site.register(Category, CategoryAdmin)
+admin.site.register(QuizInstance)
+admin.site.register(UserResponse)

@@ -1,7 +1,16 @@
-from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.shortcuts import render_to_response, get_object_or_404
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from django.core.context_processors import csrf
+from django.utils import timezone
 from quiz.models import *
 from quiz.forms import *
+
+def create_user_response(user_response, answers):
+	user_response.response=[MultipleChoiceAnswer.objects.get(pk=x) for x in answers]	
+	user_response.save()
+
+
 
 def questions_list(request):
 	questions = MultipleChoice.objects.all()
@@ -15,8 +24,9 @@ def create_quiz(request, id):
 	# todo: put this as a form
 	quiz = Quiz.objects.get(pk=id)
 	quiz_instance = QuizInstance(taker=request.user, quiz=quiz)
+	# todo: check if instance already exists, retrieve it
 	quiz_instance.save()
-	return redirect('quiz', id=quiz_instance.pk)
+	return HttpResponseRedirect(reverse('quiz.views.quiz', args=(quiz_instance.pk,)))
 
 
 def quiz(request, id):
@@ -26,7 +36,12 @@ def quiz(request, id):
 	if request.method == 'POST':
 		# save response
 		post_data = request.POST
-		question_number = int(post_data['question_number']) + 1
+		print post_data
+		question_id = int(post_data['question_number'])
+		user_response = UserResponse(quiz_instance=quiz_instance, question=quiz.get_question(question_id), time_taken_delta = timezone.now())
+		user_response.save()
+		create_user_response(user_response, post_data['choices'])
+		question_number =  question_id + 1
 		if question_number >= quiz.question_count:
 			# compute score and results
 			score = 5

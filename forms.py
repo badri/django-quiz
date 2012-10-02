@@ -38,3 +38,8 @@ class QuizForm(forms.Form):
 		super(QuizForm, self).__init__()
 		self.fields['choices'].queryset = question.choices.all()
 		self.fields['choices'].empty_label = None
+
+class QuizForm2(forms.Form):
+    def __init__(self, question, *args, **kwargs):
+        super(QuizForm2, self).__init__(*args, **kwargs)
+        self.fields['choices'] = forms.ChoiceField(widget=forms.CheckboxSelectMultiple, choices=[ (x.id, x.answer) for x in question.choices.all()])

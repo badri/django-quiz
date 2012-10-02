@@ -3,6 +3,9 @@ TODO
 1. add subjective and true or false questions
 2. time per question and time for overall quiz
 3. quiz settings
+4. change order
+5. repoduce a quiz already taken
+6. garble form hidden values
 '''
 
 from django.db import models
@@ -10,7 +13,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models import permalink
 from django.contrib.auth.models import User
 from django.template.defaultfilters import truncatewords_html
-
 from quiz.managers import *
 
 class Category(models.Model):
@@ -31,13 +33,17 @@ class Category(models.Model):
         def get_absolute_url(self):
 		return ('quiz_category_detail', None, {'slug': self.slug})
 
+
 class MultipleChoiceAnswer(models.Model):
+	'''A multichoice answer.'''
 	answer = models.TextField(_('answer'))
 
 	def __unicode__(self):
 		return u"%s" % truncatewords_html(self.answer, 10)
 
+
 class MultipleChoice(models.Model):
+	'''Multiple choice question with answer choices.'''
 	question = models.TextField(_('question'))
 	slug = models.SlugField(_('slug'))
 	choices = models.ManyToManyField(MultipleChoiceAnswer)
@@ -53,6 +59,7 @@ class MultipleChoice(models.Model):
 
 	
 class Quiz(models.Model):
+	'''A quiz template.'''
 	STATUS_CHOICES = (
 		(1, _('Draft')),
 		(2, _('Public')),
@@ -80,8 +87,7 @@ class Quiz(models.Model):
 	backwards_navigation = models.BooleanField(default=False)
 	random_question = models.BooleanField(default=False) # conditional
 	feedback = models.IntegerField(_('feedback'), choices=FEEDBACK_CHOICES, default=1)
-	multiple_takes = models.BooleanField(default=False) # conditional
-	
+	multiple_takes = models.BooleanField(default=False) # conditional	
 	
 	class Meta:
 		verbose_name = _('quiz')
@@ -99,7 +105,9 @@ class Quiz(models.Model):
 	def get_question(self, id):
 		return self.questions.all()[id]
 
+
 class QuizInstance(models.Model):
+	'''A combination of user response and a quiz template.'''
 	taker = models.ForeignKey(User)
 	quiz = models.ForeignKey(Quiz)
 	quiz_taken = models.DateTimeField(_('quiz taken'), auto_now_add=True)
@@ -113,13 +121,20 @@ class QuizInstance(models.Model):
 					return
 		super(QuizInstance, self).__setattr__(name, value)
 
+	def __unicode__(self):
+		return u"%s, taken by %s on %s" % (self.quiz, self.taker, self.quiz_taken.strftime("%A, %d %B %Y %I:%M%p"))
+
+	def get_responses(self):
+		return UserResponse.objects.filter(quiz_instance=self).all()
+	
 	
 class UserResponse(models.Model):
-	quiz_instance = models.OneToOneField(QuizInstance)
+	'''User response to a single question.'''
+	quiz_instance = models.ForeignKey(QuizInstance)
 	question = models.ForeignKey(MultipleChoice)
 	response = models.ManyToManyField(MultipleChoiceAnswer, related_name="response")
-	time_taken = models.DateTimeField(_('When was the question posed'))
-	time_taken_delta = models.DateTimeField(_('When was the question answered'))
+	time_taken = models.DateTimeField(_('When was the question posed'), auto_now_add=True)
+	time_taken_delta = models.DateTimeField(_('When was the question answered'), blank=True)
 
 	def is_correct(self):
 		return self.question.correct_answer.all()==self.response.all()
