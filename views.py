@@ -44,8 +44,10 @@ def quiz(request, id):
 		question_number =  question_id + 1
 		if question_number >= quiz.question_count:
 			# compute score and results
-			score = 5
-			c = {'score': score }
+			quiz_instance.score = sum([int(x.is_correct) for x in quiz_instance.get_responses])
+			# set quiz instance status to complete
+			quiz_instance.save()
+			c = {'score': quiz_instance.score }
 			c.update(csrf(request))
 			return render_to_response('quiz/quiz_finished.html', c)
 	question = quiz.get_question(question_number)
@@ -54,3 +56,10 @@ def quiz(request, id):
 	c = {'q': question, 'question_form' : quiz_form, 'question_number': question_number }
 	c.update(csrf(request))
 	return render_to_response('quiz/quiz.html', c)
+
+def result(request, id):
+	quiz_instance = QuizInstance.objects.get(pk=id)
+	# if object is not found, return 404, probably use a monad
+	# if quiz is not in completed status, return 404
+	return render_to_response('quiz/quiz_finished.html', {'score': quiz_instance.score })
+	

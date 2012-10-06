@@ -6,6 +6,10 @@ TODO
 4. change order
 5. repoduce a quiz already taken
 6. garble form hidden values
+7. change correct answer selection for a question.
+8. business rules
+9. quiz status
+10. question explanaiton
 '''
 
 from django.db import models
@@ -14,6 +18,7 @@ from django.db.models import permalink
 from django.contrib.auth.models import User
 from django.template.defaultfilters import truncatewords_html
 from quiz.managers import *
+from quiz.exceptions import ScoreTamperedException
 
 class Category(models.Model):
 	"""Category model."""
@@ -118,12 +123,13 @@ class QuizInstance(models.Model):
 		if name == 'score':
 			if getattr(self, 'score', None):
 				if getattr(self, 'score') != 0:
-					return
+					raise ScoreTamperedException(self.quiz, self.quiz.id, value)
 		super(QuizInstance, self).__setattr__(name, value)
 
 	def __unicode__(self):
 		return u"%s, taken by %s on %s" % (self.quiz, self.taker, self.quiz_taken.strftime("%A, %d %B %Y %I:%M%p"))
 
+	@property
 	def get_responses(self):
 		return UserResponse.objects.filter(quiz_instance=self).all()
 	
@@ -136,6 +142,9 @@ class UserResponse(models.Model):
 	time_taken = models.DateTimeField(_('When was the question posed'), auto_now_add=True)
 	time_taken_delta = models.DateTimeField(_('When was the question answered'), blank=True)
 
+	def __unicode__(self):
+		return u"Response to %s for %s" % (self.question, self.quiz_instance)
+	@property
 	def is_correct(self):
 		return self.question.correct_answer.all()==self.response.all()
 

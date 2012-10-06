@@ -13,5 +13,7 @@ urlpatterns = patterns('quiz.views',
 	url(r'^questions/$', 'questions_list'),
 	url(r'^question/(?P<id>\d+)/(?P<slug>[-\w]+)/$', 'question'),                       
         url(r'^quiz/(?P<id>\d+)/take/$', 'create_quiz'),
+        url(r'^quiz/(?P<id>\d+)/report/$', 'quiz_report'),
+        url(r'^quiz/(?P<id>\d+)/result/$', 'quiz_result'),
 	url(r'^quiz/(?P<id>\d+)/$', 'quiz'),
 )
