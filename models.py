@@ -7,10 +7,13 @@ TODO
 5. repoduce a quiz already taken
 6. garble form hidden values
 7. change correct answer selection for a question.
-8. business rules
+8. business rules - no of takes per quiz per user per month, no of instances a user can set per month, no of quizzes a user can set per month
 9. quiz status
 10. question explanaiton
+11. should we checkin migrations folder??
 '''
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -54,6 +57,7 @@ class MultipleChoice(models.Model):
 	choices = models.ManyToManyField(MultipleChoiceAnswer)
 	correct_answer = models.ManyToManyField(MultipleChoiceAnswer, related_name="correct", blank=True) #can have more than 1 correct answer, can be blank
 	categories = models.ManyToManyField(Category, blank=True)
+	explanation = models.TextField(_('Explain your answer'), blank=True)
 
 	def __unicode__(self):
 		return u"%s" % truncatewords_html(self.question, 10)
@@ -76,11 +80,19 @@ class Quiz(models.Model):
 		(2, _('After each question')),
 		(3, _('Don\'t disclose')),
 	)
+
+	TYPE_CHOICES = (
+		(1, _('After Lecture')),
+		(2, _('Assessment')),
+		(3, _('Exam')),
+	)
+	NO_OF_TAKES_PER_MONTH_PER_USER = 3
 	setter = models.ForeignKey(User, related_name='setter')
 	title = models.CharField(_('title'), max_length=100)
 	slug = models.SlugField(_('slug'))
 	description = models.TextField(_('description'), blank=True, null=True)	
 	status = models.IntegerField(_('status'), choices=STATUS_CHOICES, default=1)
+	type = models.IntegerField(_('quiz type'), choices=TYPE_CHOICES, default=2)
 	questions = models.ManyToManyField(MultipleChoice)
 	categories = models.ManyToManyField(Category, blank=True)	
 	published = models.DateTimeField(_('published'))	
@@ -92,7 +104,10 @@ class Quiz(models.Model):
 	backwards_navigation = models.BooleanField(default=False)
 	random_question = models.BooleanField(default=False) # conditional
 	feedback = models.IntegerField(_('feedback'), choices=FEEDBACK_CHOICES, default=1)
-	multiple_takes = models.BooleanField(default=False) # conditional	
+	multiple_takes = models.BooleanField(default=False) # conditional
+	# default must be global setting
+	no_of_takes_per_month = models.IntegerField(_('no. of times this quiz can be taken by the candidate per month'),
+						    default=NO_OF_TAKES_PER_MONTH_PER_USER)
 	
 	class Meta:
 		verbose_name = _('quiz')
@@ -110,6 +125,23 @@ class Quiz(models.Model):
 	def get_question(self, id):
 		return self.questions.all()[id]
 
+	@property
+	def get_instances(self):
+		return QuizInstance.objects.filter(quiz=self)
+
+	@property
+	def get_completed_instances(self):
+		return this.get_instances.filter(complete=True)
+
+	@property
+	def get_instances_last_month(self):
+		return self.get_instances_since_month(1)
+
+	def get_instances_since_month(self, no_of_months=1, user=None):
+		instances = this.get_completed_instances.filter(quiz_taken__gt=date.today() - relativedelta(months=no_of_months))
+		if user: return instances.filter(taker=user)
+		else: return instances
+
 
 class QuizInstance(models.Model):
 	'''A combination of user response and a quiz template.'''
@@ -117,12 +149,12 @@ class QuizInstance(models.Model):
 	quiz = models.ForeignKey(Quiz)
 	quiz_taken = models.DateTimeField(_('quiz taken'), auto_now_add=True)
 	score = models.IntegerField(default=0)
-	
+	complete = models.BooleanField(default=False)
 	# prevent from setting score in the frontend to avoid tampering
 	def __setattr__(self, name, value):
 		if name == 'score':
 			if getattr(self, 'score', None):
-				if getattr(self, 'score') != 0:
+				if getattr(self, 'score') != 0 and getattr(self, 'score') != value:
 					raise ScoreTamperedException(self.quiz, self.quiz.id, value)
 		super(QuizInstance, self).__setattr__(name, value)
 
