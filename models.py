@@ -11,36 +11,20 @@ TODO
 9. quiz status
 10. question explanaiton
 11. should we checkin migrations folder??
+12. user django polymorphic for question answer models
 '''
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from taggit.managers import TaggableManager
+
 from django.db.models import permalink
 from django.contrib.auth.models import User
 from django.template.defaultfilters import truncatewords_html
 from quiz.managers import *
 from quiz.exceptions import ScoreTamperedException
-
-class Category(models.Model):
-	"""Category model."""
-	title = models.CharField(_('title'), max_length=100)
-	slug = models.SlugField(_('slug'), unique=True)
-
-	class Meta:
-		verbose_name = _('category')
-		verbose_name_plural = _('categories')
-		db_table = 'quiz_categories'
-		ordering = ('title',)
-
-	def __unicode__(self):
-		return u'%s' % self.title
-
-        @permalink
-        def get_absolute_url(self):
-		return ('quiz_category_detail', None, {'slug': self.slug})
-
 
 class MultipleChoiceAnswer(models.Model):
 	'''A multichoice answer.'''
@@ -56,7 +40,7 @@ class MultipleChoice(models.Model):
 	slug = models.SlugField(_('slug'))
 	choices = models.ManyToManyField(MultipleChoiceAnswer)
 	correct_answer = models.ManyToManyField(MultipleChoiceAnswer, related_name="correct", blank=True) #can have more than 1 correct answer, can be blank
-	categories = models.ManyToManyField(Category, blank=True)
+	categories = TaggableManager()
 	explanation = models.TextField(_('Explain your answer'), blank=True)
 
 	def __unicode__(self):
@@ -87,6 +71,7 @@ class Quiz(models.Model):
 		(3, _('Exam')),
 	)
 	NO_OF_TAKES_PER_MONTH_PER_USER = 3
+	NO_OF_INSTANCES_PER_MONTH_PER_SETTER = 20
 	setter = models.ForeignKey(User, related_name='setter')
 	title = models.CharField(_('title'), max_length=100)
 	slug = models.SlugField(_('slug'))
@@ -94,10 +79,10 @@ class Quiz(models.Model):
 	status = models.IntegerField(_('status'), choices=STATUS_CHOICES, default=1)
 	type = models.IntegerField(_('quiz type'), choices=TYPE_CHOICES, default=2)
 	questions = models.ManyToManyField(MultipleChoice)
-	categories = models.ManyToManyField(Category, blank=True)	
+	categories = TaggableManager()	
 	published = models.DateTimeField(_('published'))	
 	date_added = models.DateTimeField(_('date added'), auto_now_add=True)
-	date_modified = models.DateTimeField(_('date modified'), auto_now=True)
+	date_modified = models.DateTimeField(_('date modified'), auto_now_add=True)
 
 	allow_skipping = models.BooleanField(default=False)
 	allow_jumping = models.BooleanField(default=False)
@@ -108,6 +93,8 @@ class Quiz(models.Model):
 	# default must be global setting
 	no_of_takes_per_month = models.IntegerField(_('no. of times this quiz can be taken by the candidate per month'),
 						    default=NO_OF_TAKES_PER_MONTH_PER_USER)
+	no_of_instances_per_month = models.IntegerField(_('no. of times this quiz can be taken by the candidate per month'),
+						    default=NO_OF_INSTANCES_PER_MONTH_PER_SETTER)
 	
 	class Meta:
 		verbose_name = _('quiz')
